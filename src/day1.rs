@@ -1,30 +1,48 @@
 use core::cmp::Reverse;
 use std::collections::BinaryHeap;
-use std::fmt::Debug;
 
-trait HighestN: Iterator {
-    fn highest_n<const N: usize>(self) -> [Self::Item; N];
+struct HighestN<T> {
+    highest_n: BinaryHeap<Reverse<T>>,
 }
 
-impl<I: Iterator> HighestN for I
-where
-    I::Item: Ord + Debug,
-{
-    fn highest_n<const N: usize>(self) -> [Self::Item; N] {
-        let queue = BinaryHeap::with_capacity(N);
-        self.fold(queue, |mut queue, x| {
-            queue.push(Reverse(x));
-            if queue.len() > N {
-                let _ = queue.pop();
+impl<T: Ord> HighestN<T> {
+    pub fn new<I, const N: usize>(iter: I) -> Self
+    where
+        I: Iterator<Item = T>,
+    {
+        let mut highest_n = BinaryHeap::with_capacity(N);
+        for x in iter {
+            highest_n.push(Reverse(x));
+            if highest_n.len() > N {
+                let _ = highest_n.pop();
             }
-            queue
-        })
-        .into_iter()
-        .map(|x| x.0)
-        .collect::<Vec<Self::Item>>()
-        .try_into()
-        .unwrap()
+        }
+        Self { highest_n }
     }
+}
+
+impl<T: Ord> Iterator for HighestN<T> {
+    type Item = T;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.highest_n.pop().map(|x| x.0)
+    }
+}
+
+trait HighestNIter<T>
+where
+    T: Ord,
+    Self: Iterator<Item = T> + Sized,
+{
+    fn n_highest<const N: usize>(self) -> HighestN<T> {
+        HighestN::new::<Self, N>(self)
+    }
+}
+
+impl<I, T> HighestNIter<T> for I
+where
+    I: Iterator<Item = T>,
+    T: Ord,
+{
 }
 
 #[aoc_generator(day1)]
@@ -42,5 +60,5 @@ fn part1(input: &[u32]) -> u32 {
 
 #[aoc(day1, part2)]
 fn part2(input: &[u32]) -> u32 {
-    input.iter().highest_n::<3>().into_iter().sum()
+    input.iter().n_highest::<3>().sum()
 }
