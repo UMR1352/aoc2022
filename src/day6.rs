@@ -4,14 +4,13 @@ trait AllUniqueIter: Iterator {
 
 impl<'a, I: Iterator<Item = &'a u8>> AllUniqueIter for I {
     fn all_unique(mut self) -> bool {
-        let mut set = [0_u64; 4];
+        let mut set = 0_u32;
         while let Some(byte) = self.next() {
-            let slot = (byte / 64) as usize;
-            let offset = (byte % 64) as usize;
-            if set[slot] & (1 << offset) != 0 {
+            let offset = (byte - b'a') as usize;
+            if set & (1 << offset) != 0 {
                 return false;
             } else {
-                set[slot] |= 1 << offset;
+                set |= 1 << offset;
             }
         }
 
