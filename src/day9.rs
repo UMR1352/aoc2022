@@ -1,6 +1,24 @@
-use std::str::FromStr;
-
 use itertools::Itertools;
+use std::{ops::AddAssign, str::FromStr};
+
+#[derive(Debug, Default, Clone, Copy, Hash, Eq, PartialEq)]
+struct Pos {
+    x: i32,
+    y: i32,
+}
+
+impl Pos {
+    pub fn from_tuple(pos: (i32, i32)) -> Self {
+        Self { x: pos.0, y: pos.1 }
+    }
+}
+
+impl AddAssign for Pos {
+    fn add_assign(&mut self, rhs: Self) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 enum Dir {
@@ -24,33 +42,33 @@ impl FromStr for Dir {
 }
 
 impl Dir {
-    fn to_pos(self) -> (i32, i32) {
+    fn to_pos(self) -> Pos {
         match self {
-            Self::Up => (0, -1),
-            Self::Down => (0, 1),
-            Self::Left => (-1, 0),
-            Self::Right => (1, 0),
+            Self::Up => Pos::from_tuple((0, -1)),
+            Self::Down => Pos::from_tuple((0, 1)),
+            Self::Left => Pos::from_tuple((-1, 0)),
+            Self::Right => Pos::from_tuple((1, 0)),
         }
     }
 }
 
 trait Movement {
     fn king_distance(&self, other: &Self) -> usize;
-    fn normal_diff(&self, other: &Self) -> (i32, i32);
+    fn normal_diff(&self, other: &Self) -> Self;
 }
 
-impl Movement for (i32, i32) {
+impl Movement for Pos {
     fn king_distance(&self, other: &Self) -> usize {
-        let dx = self.0.abs_diff(other.0) as usize;
-        let dy = self.1.abs_diff(other.1) as usize;
+        let dx = self.x.abs_diff(other.x) as usize;
+        let dy = self.y.abs_diff(other.y) as usize;
 
         dx.max(dy)
     }
-    fn normal_diff(&self, other: &Self) -> (i32, i32) {
-        let dx = other.0 - self.0;
-        let dy = other.1 - self.1;
+    fn normal_diff(&self, other: &Self) -> Pos {
+        let dx = other.x - self.x;
+        let dy = other.y - self.y;
 
-        (dx.signum(), dy.signum())
+        Pos::from_tuple((dx.signum(), dy.signum()))
     }
 }
 
@@ -73,41 +91,34 @@ fn generator(input: &str) -> Vec<(Dir, usize)> {
 
 #[repr(transparent)]
 #[derive(Debug)]
-struct Rope<const N: usize>([(i32, i32); N]);
+struct Rope<const N: usize>([Pos; N]);
 
 impl<const N: usize> Default for Rope<N> {
     fn default() -> Self {
-        Self([(0, 0); N])
+        Self([Pos::default(); N])
     }
 }
 
 impl<const N: usize> Rope<N> {
-    pub fn head_mut(&mut self) -> &mut (i32, i32) {
+    #[inline(always)]
+    pub fn head_mut(&mut self) -> &mut Pos {
         &mut self.0[0]
     }
-    pub fn head(&self) -> &(i32, i32) {
+    #[inline(always)]
+    pub fn head(&self) -> &Pos {
         &self.0[0]
     }
-    pub fn tail(&self) -> &(i32, i32) {
+    #[inline(always)]
+    pub fn tail(&self) -> &Pos {
         &self.0[N - 1]
     }
-    #[inline(always)]
-    fn move_head(&mut self, dir: &(i32, i32)) -> (i32, i32) {
-        let prev @ (x, y) = *self.head();
-        *self.head_mut() = (x + dir.0, y + dir.1);
-
-        prev
-    }
-    pub fn m0ve(&mut self, dir: &(i32, i32)) {
-        let mut _prev = self.move_head(dir);
+    pub fn m0ve(&mut self, dir: &Pos) {
+        *self.head_mut() += *dir;
         let mut prev_knot = *self.head();
-
         for curr_knot in self.0[1..N].iter_mut() {
             if prev_knot.king_distance(curr_knot) > 1 {
                 let diff = curr_knot.normal_diff(&prev_knot);
-                curr_knot.0 += diff.0;
-                curr_knot.1 += diff.1;
-
+                *curr_knot += diff;
                 prev_knot = *curr_knot;
             } else {
                 break;
