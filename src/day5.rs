@@ -32,7 +32,7 @@ fn generator(input: &str) -> ([Vec<char>; 9], Vec<Instruction>) {
     let crates_stack = crates_stack
         .lines()
         .rev()
-        .filter(|line| line.contains("["))
+        .filter(|line| line.contains('['))
         .flat_map(|line| {
             line.as_bytes()
                 .chunks(4)
@@ -62,10 +62,12 @@ fn part1((stacks, instructions): &([Vec<char>; 9], Vec<Instruction>)) -> String 
         amount,
         source,
         dest,
-    } in instructions.into_iter()
+    } in instructions.iter()
     {
         for _ in 0..*amount {
-            stacks[*source].pop().map(|c| stacks[*dest].push(c));
+            if let Some(c) = stacks[*source].pop() {
+                stacks[*dest].push(c);
+            }
         }
     }
 
@@ -82,11 +84,13 @@ fn part2((stacks, instructions): &([Vec<char>; 9], Vec<Instruction>)) -> String 
         amount,
         source,
         dest,
-    } in instructions.into_iter()
+    } in instructions.iter()
     {
         let mut temp = vec![];
         for _ in 0..*amount {
-            stacks[*source].pop().map(|c| temp.push(c));
+            if let Some(c) = stacks[*source].pop() {
+                temp.push(c);
+            }
         }
         temp.into_iter().rev().for_each(|c| stacks[*dest].push(c));
     }

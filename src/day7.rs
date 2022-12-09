@@ -23,8 +23,8 @@ struct File {
 
 fn parse_file_or_command(input: &str) -> IResult<&str, Either<File, Command>> {
     alt((
-        map(parse_file, |file| Either::Left(file)),
-        map(parse_command, |cmd| Either::Right(cmd)),
+        map(parse_file, Either::Left),
+        map(parse_command, Either::Right),
     ))(input)
 }
 
@@ -45,9 +45,11 @@ fn parse_cd(input: &str) -> IResult<&str, Command> {
         ),
         |(_cmd, arg)| {
             Ok::<Command<'_>, ()>(
-                (arg == "..")
-                    .then_some(Command::CdBack)
-                    .unwrap_or(Command::CdInto(arg)),
+                if arg == ".." {
+                    Command::CdBack
+                } else {
+                    Command::CdInto(arg)
+                }
             )
         },
     )(input)

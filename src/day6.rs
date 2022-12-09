@@ -3,9 +3,9 @@ trait AllUniqueIter: Iterator {
 }
 
 impl<'a, I: Iterator<Item = &'a u8>> AllUniqueIter for I {
-    fn all_unique(mut self) -> bool {
+    fn all_unique(self) -> bool {
         let mut set = 0_u32;
-        while let Some(byte) = self.next() {
+        for byte in self {
             let offset = (byte - b'a') as usize;
             if set & (1 << offset) != 0 {
                 return false;
@@ -23,7 +23,7 @@ fn part1(input: &[u8]) -> usize {
     input
         .windows(4)
         .enumerate()
-        .find_map(|(offset, bytes)| bytes.iter().all_unique().then(|| offset + 4))
+        .find_map(|(offset, bytes)| bytes.iter().all_unique().then_some(offset + 4))
         .unwrap()
 }
 
@@ -32,6 +32,6 @@ fn part2(input: &[u8]) -> usize {
     input
         .windows(14)
         .enumerate()
-        .find_map(|(offset, bytes)| bytes.iter().all_unique().then(|| offset + 14))
+        .find_map(|(offset, bytes)| bytes.iter().all_unique().then_some(offset + 14))
         .unwrap()
 }
